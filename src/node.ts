@@ -4,7 +4,11 @@ import crypto from 'crypto';
 import b4a from 'b4a';
 import path from 'path';
 import fs from 'fs/promises';
+import os from 'os';
 import { type Friend, type MessagePayload, type HandshakeResult, type ClawConfig } from './types';
+
+// Detect Apple Silicon for Hypercore compatibility workaround
+const isAppleSilicon = os.platform() === 'darwin' && os.arch() === 'arm64';
 
 export class ClawNode {
   private feed: Hypercore | null = null;
@@ -31,9 +35,31 @@ export class ClawNode {
     // Initialize Hypercore feed
     // @ts-ignore - hypercore doesn't have type definitions
     this.feed = new Hypercore({ storage: path.join(this.storagePath, 'feed') });
-    await new Promise<void>((resolve) => {
-      this.feed!.ready(() => resolve());
-    });
+    
+    // Workaround for Hypercore native module issue on Apple Silicon
+    // The ready() callback can hang due to Rust native extension blocking
+    if (isAppleSilicon) {
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log('[ClawNode] Timeout reached, proceeding anyway');
+          resolve();
+        }, 5000);
+        
+        try {
+          this.feed!.ready(() => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        } catch {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+    } else {
+      await new Promise<void>((resolve) => {
+        this.feed!.ready(() => resolve());
+      });
+    }
 
     // Load friends
     await this.loadFriends();

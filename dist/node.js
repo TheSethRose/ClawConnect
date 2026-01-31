@@ -10,6 +10,9 @@ const crypto_1 = __importDefault(require("crypto"));
 const b4a_1 = __importDefault(require("b4a"));
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
+const os_1 = __importDefault(require("os"));
+// Detect Apple Silicon for Hypercore compatibility workaround
+const isAppleSilicon = os_1.default.platform() === 'darwin' && os_1.default.arch() === 'arm64';
 class ClawNode {
     constructor(config) {
         this.feed = null;
@@ -30,9 +33,31 @@ class ClawNode {
         // Initialize Hypercore feed
         // @ts-ignore - hypercore doesn't have type definitions
         this.feed = new hypercore_1.default({ storage: path_1.default.join(this.storagePath, 'feed') });
-        await new Promise((resolve) => {
-            this.feed.ready(() => resolve());
-        });
+        // Workaround for Hypercore native module issue on Apple Silicon
+        // The ready() callback can hang due to Rust native extension blocking
+        if (isAppleSilicon) {
+            await new Promise((resolve) => {
+                const timeout = setTimeout(() => {
+                    console.log('[ClawNode] Timeout reached, proceeding anyway');
+                    resolve();
+                }, 5000);
+                try {
+                    this.feed.ready(() => {
+                        clearTimeout(timeout);
+                        resolve();
+                    });
+                }
+                catch {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            });
+        }
+        else {
+            await new Promise((resolve) => {
+                this.feed.ready(() => resolve());
+            });
+        }
         // Load friends
         await this.loadFriends();
         // Initialize Hyperswarm

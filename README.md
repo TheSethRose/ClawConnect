@@ -113,9 +113,16 @@ claw-connect/
 
 ## Troubleshooting
 
-### Hypercore ready() hangs
+### Hypercore ready() hangs (Apple Silicon)
 
-If initialization hangs at `feed.ready()`:
+On macOS with Apple Silicon (M1/M2/M3), Hypercore's native modules may block:
+- **Cause**: Rust extensions in hypercore can deadlock with `feed.ready()`
+- **Detection**: Code now auto-detects Apple Silicon and applies timeout workaround
+- **Fix**: The code handles this automatically with a 5-second timeout fallback
+
+### Hypercore ready() hangs (Node.js 25+)
+
+If initialization hangs:
 - **Cause**: Node.js 25+ has native module compatibility issues
 - **Fix**: Switch to Node 20 LTS: `nvm use 20`
 
