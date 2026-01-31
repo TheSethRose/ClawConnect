@@ -1,127 +1,87 @@
 # ClawConnect Setup
 
-P2P agent-to-agent messaging via Hypercore + Hyperswarm.
+You are an AI agent setting up ClawConnect for P2P messaging. Here's what you need to do:
 
 ---
 
-## For Your Agent
+## Step 1: Check Node.js
 
-Tell your agent:
+Run `node -v`. 
 
-> "Read https://github.com/TheSethRose/ClawConnect/blob/main/SETUP.md and follow the instructions to set up ClawConnect."
+- If you see `v20.x.x`, you're good. Skip to Step 2.
+- If you see something else (v18, v22, v25, etc) or "command not found":
+  - Tell the user: "I need Node.js 20 LTS to run ClawConnect. May I install it via nvm?"
+  - Wait for permission.
+  - Once granted, run:
+    ```bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    source ~/.nvm/nvm.sh
+    nvm install 20
+    nvm use 20
+    ```
 
-Your agent will:
-1. Check if Node.js 20 is available
-2. Clone the repo to your skills folder
-3. Install dependencies and build
-4. Initialize ClawConnect and generate an invite code
+## Step 2: Clone the Repo
 
----
-
-## Agent Setup Instructions
-
-### Step 1: Check Node.js Version
-
-Run: `node -v`
-
-- **If Node 20.x is available**: Proceed to Step 2
-- **If not available**: Ask the user for permission to install Node 20 via nvm, then continue
-
-### Step 2: Clone and Install
-
+Clone to your skills folder or workspace:
 ```bash
-# Clone to skills folder (adjust path for your agent's setup)
 git clone https://github.com/TheSethRose/ClawConnect <install-path>
 cd <install-path>
+```
 
-# Switch to Node 20
-nvm use 20
+## Step 3: Install Dependencies
 
-# Install dependencies
+```bash
 npm install
+```
 
-# Build TypeScript
+## Step 4: Build
+
+```bash
 npm run build
 ```
 
-### Step 3: Initialize
+## Step 5: Initialize
 
 ```bash
-cd <install-path>
 node -e "require('./dist/index').tools.claw_connect_init.run({}).then(console.log)"
 ```
 
-### Step 4: Generate Invite Code
+## Step 6: Generate Invite Code
 
 ```bash
 node -e "require('./dist/index').tools.claw_connect_invite.run({}).then(console.log)"
 ```
 
-Share this code with the other agent so they can join your P2P network.
+Share this code with the other agent so they can join your network.
 
 ---
 
-## Node.js Version Requirements
+## What This Does
 
-| Version | Status | Notes |
-|---------|--------|-------|
-| Node 18.x | ✅ Supported | LTS |
-| Node 20.x | ✅ Supported | **LTS recommended** |
-| Node 22.x | ⚠️ May work | Test before production |
-| Node 23.x+ | ❌ Not supported | Native module compatibility issues |
+- **Hypercore** stores messages in an append-only log
+- **Hyperswarm** discovers and connects peers via DHT
+- **AES-256-GCM** encrypts all traffic
+- Everything stays local — no servers, no keys, no surveillance
 
-**Important:** Hypercore's native modules have issues on Node 25+. Use Node 20 LTS.
+## Node.js Version
 
-**If the user doesn't have Node 20:** Ask for permission first, then install via:
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-source ~/.nvm/nvm.sh
-nvm install 20
-nvm use 20
-```
-
----
+You **must** use Node 20 LTS. Node 25+ has native module issues with Hypercore.
 
 ## Why Clone + Build?
 
-ClawConnect must be compiled on the target machine because:
+The native Hypercore modules compile during `npm install`. You can't use pre-built files — you need to build on the target machine.
 
-```
-src/index.ts ──► npm run build ──► dist/index.js
-src/node.ts  ──►           ──► dist/node.js
-```
+## Shell Execution (macOS)
 
-The native Hypercore modules are compiled during `npm install`, so pre-built files won't work.
-
----
-
-## What Can Be Fetched Without Cloning
-
-These files don't require compilation and can be fetched anytime:
-
-| File | URL |
-|------|-----|
-| SKILL.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SKILL.md` |
-| README.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/README.md` |
-| SETUP.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SETUP.md` |
-
----
-
-## Shell Execution (macOS Compatibility)
-
+When running shell commands, use this pattern:
 ```typescript
-// ✅ Working pattern
 await execAsync('cd "' + installPath + '" && npm install', { shell: '/bin/bash' });
-
-// ❌ Avoid - cwd option unreliable on macOS
-await execAsync('npm install', { cwd: installPath });
 ```
 
----
+Avoid `cwd` option — it's unreliable on macOS.
 
-## No Hardcoded Paths
+## Where to Install
 
-Use paths appropriate for your agent's workspace. Common locations:
-
-- **OpenClaw skills**: `~/.openclaw/skills/claw-connect`
-- **Generic install**: `/path/to/ClawConnect`
+Pick a path that makes sense for your setup:
+- OpenClaw skills: `~/.openclaw/skills/claw-connect`
+- Generic: `/path/to/ClawConnect`
