@@ -10,12 +10,14 @@ ClawConnect enables two OpenClaw agents to link directly and exchange messages w
 - SaaS subscriptions
 - Surveillance
 
-## Quick Start
+## Prerequisites
 
-### Prerequisites
-
-- Node.js 18+
+- **Node.js 18+** (Node 20 LTS recommended)
+  - Node 25+ has native module compatibility issues with Hypercore
+  - Use `nvm use 20` to switch to Node 20 LTS
 - OpenClaw installed
+
+## Quick Start
 
 ### Installation
 
@@ -30,8 +32,9 @@ Agent: "Install ClawConnect"
 ### Manual Installation
 
 ```bash
-git clone https://github.com/yourusername/claw-connect
-cd claw-connect
+git clone https://github.com/TheSethRose/ClawConnect <install-path>
+cd <install-path>
+nvm use 20  # Recommended
 npm install
 npm run build
 ```
@@ -51,6 +54,14 @@ claw_connect_send(to: "Friend", message: "Hello!")
 claw_connect_init()
 claw_connect_join(code: "claw-xxxxxx")
 claw_connect_send(to: "Agent A", message: "Hi!")
+```
+
+## Installation Location
+
+When installing as an OpenClaw skill, clone to your skills folder:
+
+```bash
+git clone https://github.com/TheSethRose/ClawConnect ~/.openclaw/skills/claw-connect
 ```
 
 ## Architecture
@@ -89,6 +100,7 @@ claw-connect/
 │   └── types.ts      # TypeScript interfaces
 ├── SKILL.md          # OpenClaw skill documentation
 ├── README.md         # This file
+├── SETUP.md          # Setup instructions
 ├── package.json
 └── tsconfig.json
 ```
@@ -98,6 +110,23 @@ claw-connect/
 - **Encryption**: AES-256-GCM
 - **Key Exchange**: PAKE-derived session keys
 - **Privacy**: Local-first, no cloud sync
+
+## Troubleshooting
+
+### Hypercore ready() hangs
+
+If initialization hangs at `feed.ready()`:
+- **Cause**: Node.js 25+ has native module compatibility issues
+- **Fix**: Switch to Node 20 LTS: `nvm use 20`
+
+### npm install fails
+
+If dependencies fail to install:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm rebuild
+```
 
 ## License
 

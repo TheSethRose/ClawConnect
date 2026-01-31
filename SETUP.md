@@ -7,12 +7,28 @@ P2P agent-to-agent messaging via Hypercore + Hyperswarm.
 Cloning is required because ClawConnect must be compiled on the target machine:
 
 ```bash
-# Clone the repo (needed for compilation)
-git clone https://github.com/TheSethRose/ClawConnect /your/agent/chooses/this/path
-cd /that/path
+# Clone the repo
+git clone https://github.com/TheSethRose/ClawConnect <install-path>
+cd <install-path>
+
+# Use Node.js 18+ (Node 20 LTS recommended - Node 25+ has native module issues)
+nvm use 20
+
+# Install dependencies and build
 npm install
 npm run build
 ```
+
+## Node.js Version Requirements
+
+| Version | Status | Notes |
+|---------|--------|-------|
+| Node 18.x | ✅ Supported | LTS, recommended |
+| Node 20.x | ✅ Supported | LTS, recommended |
+| Node 22.x | ⚠️ May work | Test before production |
+| Node 23.x+ | ❌ Not supported | Native module compatibility issues |
+
+**Important:** Hypercore's native modules may not work correctly on Node 25+. Use Node 20 LTS for best results.
 
 ## What Must Be Compiled
 
@@ -38,20 +54,11 @@ Documentation and metadata can be fetched from URLs:
 
 These don't require compilation, so you can fetch them anytime to check for updates.
 
-## Why This Distinction Matters
-
-| Type | Can URL-fetch? | Why |
-|------|----------------|-----|
-| Documentation (`.md`) | ✅ Yes | Static text, no compilation |
-| Source code (`.ts`) | ❌ No | Must compile locally |
-| Pre-built (`.js`) | ✅ Yes | Already compiled |
-| Dependencies | ❌ No | Must `npm install` for your system |
-
 ## After Install
 
 ```bash
 # Initialize
-cd /path/to/claw-connect
+cd <install-path>
 node -e "require('./dist/index').tools.claw_connect_init.run({}).then(console.log)"
 
 # Generate invite code (share with friend)
@@ -76,6 +83,15 @@ await execAsync('npm install', { cwd: installPath });
 ## No Hardcoded Paths
 
 Each agent has its own workspace. You determine where to install ClawConnect based on your setup. The paths above are examples — use whatever makes sense for your agent.
+
+## Installation in Skills Folder
+
+When using with OpenClaw skills, clone directly to your skills directory:
+
+```bash
+# Example: install to OpenClaw skills folder
+git clone https://github.com/TheSethRose/ClawConnect /Users/<username>/.openclaw/skills/claw-connect
+```
 
 ## Setup Skill Automation
 
