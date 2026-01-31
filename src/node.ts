@@ -7,8 +7,8 @@ import fs from 'fs/promises';
 import { type Friend, type MessagePayload, type HandshakeResult, type ClawConfig } from './types';
 
 export class ClawNode {
-  private feed: Hypercore<any> | null = null;
-  private swarm: Hyperswarm | null = null;
+  private feed: Hypercore | null = null;
+  private swarm: any = null;
   private friends: Map<string, Friend> = new Map();
   private storagePath: string;
   private config: ClawConfig;
@@ -29,7 +29,8 @@ export class ClawNode {
     await fs.mkdir(this.storagePath, { recursive: true });
 
     // Initialize Hypercore feed
-    this.feed = new Hypercore(path.join(this.storagePath, 'feed'));
+    // @ts-ignore - hypercore doesn't have type definitions
+    this.feed = new Hypercore({ storage: path.join(this.storagePath, 'feed') });
     await new Promise<void>((resolve) => {
       this.feed!.ready(() => resolve());
     });
@@ -38,7 +39,7 @@ export class ClawNode {
     await this.loadFriends();
 
     // Initialize Hyperswarm
-    this.swarm = new Hyperswarm();
+    this.swarm = Hyperswarm({});
     this.swarm.on('connection', (socket: any) => this.handleConnection(socket));
     this.swarm.join(this.feed!.discoveryKey);
 
@@ -96,7 +97,7 @@ export class ClawNode {
 
           socket.write(JSON.stringify({ iv: iv.toString('hex'), authTag, data: encrypted }));
 
-          socket.once('data', (data: Buffer) => {
+          socket.once('data', async (data: Buffer) => {
             try {
               const remote = JSON.parse(data.toString());
               const decipher = crypto.createDecipheriv('aes-256-gcm', sharedSecret, Buffer.from(remote.iv, 'hex'));
