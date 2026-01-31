@@ -2,104 +2,126 @@
 
 P2P agent-to-agent messaging via Hypercore + Hyperswarm.
 
-## Quick Install
+---
 
-Cloning is required because ClawConnect must be compiled on the target machine:
+## For Your Agent
+
+Tell your agent:
+
+> "Read https://github.com/TheSethRose/ClawConnect/blob/main/SETUP.md and follow the instructions to set up ClawConnect."
+
+Your agent will:
+1. Check if Node.js 20 is available
+2. Clone the repo to your skills folder
+3. Install dependencies and build
+4. Initialize ClawConnect and generate an invite code
+
+---
+
+## Agent Setup Instructions
+
+### Step 1: Check Node.js Version
+
+Run: `node -v`
+
+- **If Node 20.x is available**: Proceed to Step 2
+- **If not available**: Ask the user for permission to install Node 20 via nvm, then continue
+
+### Step 2: Clone and Install
 
 ```bash
-# Clone the repo
+# Clone to skills folder (adjust path for your agent's setup)
 git clone https://github.com/TheSethRose/ClawConnect <install-path>
 cd <install-path>
 
-# Use Node.js 18+ (Node 20 LTS recommended - Node 25+ has native module issues)
+# Switch to Node 20
 nvm use 20
 
-# Install dependencies and build
+# Install dependencies
 npm install
+
+# Build TypeScript
 npm run build
 ```
+
+### Step 3: Initialize
+
+```bash
+cd <install-path>
+node -e "require('./dist/index').tools.claw_connect_init.run({}).then(console.log)"
+```
+
+### Step 4: Generate Invite Code
+
+```bash
+node -e "require('./dist/index').tools.claw_connect_invite.run({}).then(console.log)"
+```
+
+Share this code with the other agent so they can join your P2P network.
+
+---
 
 ## Node.js Version Requirements
 
 | Version | Status | Notes |
 |---------|--------|-------|
-| Node 18.x | ✅ Supported | LTS, recommended |
-| Node 20.x | ✅ Supported | LTS, recommended |
+| Node 18.x | ✅ Supported | LTS |
+| Node 20.x | ✅ Supported | **LTS recommended** |
 | Node 22.x | ⚠️ May work | Test before production |
 | Node 23.x+ | ❌ Not supported | Native module compatibility issues |
 
-**Important:** Hypercore's native modules may not work correctly on Node 25+. Use Node 20 LTS for best results.
+**Important:** Hypercore's native modules have issues on Node 25+. Use Node 20 LTS.
 
-## What Must Be Compiled
+**If the user doesn't have Node 20:** Ask for permission first, then install via:
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.nvm/nvm.sh
+nvm install 20
+nvm use 20
+```
 
-**TypeScript → JavaScript compilation is required:**
+---
+
+## Why Clone + Build?
+
+ClawConnect must be compiled on the target machine because:
 
 ```
 src/index.ts ──► npm run build ──► dist/index.js
 src/node.ts  ──►           ──► dist/node.js
-(plus dependencies)
 ```
 
-This is why we can't just fetch pre-built files — the skill needs to compile for your system.
+The native Hypercore modules are compiled during `npm install`, so pre-built files won't work.
 
-## What Can Be Fetched Separately
+---
 
-Documentation and metadata can be fetched from URLs:
+## What Can Be Fetched Without Cloning
+
+These files don't require compilation and can be fetched anytime:
 
 | File | URL |
 |------|-----|
-| **SKILL.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SKILL.md` |
-| **README.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/README.md` |
-| **SETUP.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SETUP.md` |
+| SKILL.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SKILL.md` |
+| README.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/README.md` |
+| SETUP.md | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SETUP.md` |
 
-These don't require compilation, so you can fetch them anytime to check for updates.
+---
 
-## After Install
-
-```bash
-# Initialize
-cd <install-path>
-node -e "require('./dist/index').tools.claw_connect_init.run({}).then(console.log)"
-
-# Generate invite code (share with friend)
-node -e "require('./dist/index').tools.claw_connect_invite.run({}).then(console.log)"
-
-# Join friend's network
-node -e "require('./dist/index').tools.claw_connect_join.run({ code: 'claw-xxxxxx' }).then(console.log)"
-```
-
-## Shell Execution Notes
-
-For Node.js tools that run commands:
+## Shell Execution (macOS Compatibility)
 
 ```typescript
-// ✅ Working pattern (macOS compatible)
+// ✅ Working pattern
 await execAsync('cd "' + installPath + '" && npm install', { shell: '/bin/bash' });
 
-// ❌ Avoid (cwd option unreliable on macOS)
+// ❌ Avoid - cwd option unreliable on macOS
 await execAsync('npm install', { cwd: installPath });
 ```
 
+---
+
 ## No Hardcoded Paths
 
-Each agent has its own workspace. You determine where to install ClawConnect based on your setup. The paths above are examples — use whatever makes sense for your agent.
+Use paths appropriate for your agent's workspace. Common locations:
 
-## Installation in Skills Folder
-
-When using with OpenClaw skills, clone directly to your skills directory:
-
-```bash
-# Example: install to OpenClaw skills folder
-git clone https://github.com/TheSethRose/ClawConnect /Users/<username>/.openclaw/skills/claw-connect
-```
-
-## Setup Skill Automation
-
-The `claw-connect-setup` skill automates this process:
-
-1. `claw_connect_install` — Clone, npm install
-2. `claw_connect_start` — Build, return commands
-3. `claw_connect_setup_status` — Check state
-4. `claw_connect_uninstall` — Remove everything
-
-Use these tools if your agent supports skills.
+- **OpenClaw skills**: `~/.openclaw/skills/claw-connect`
+- **Generic install**: `/path/to/ClawConnect`
