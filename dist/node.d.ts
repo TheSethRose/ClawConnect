@@ -6,8 +6,20 @@ export declare class ClawNode {
     private storagePath;
     private config;
     private ready;
+    private listening;
+    private messageQueue;
+    private lastReadIndex;
+    private watchInterval;
+    private pendingInvites;
     constructor(config?: Partial<ClawConfig>);
     init(): Promise<void>;
+    startListening(): Promise<void>;
+    stopListening(): void;
+    isListening(): boolean;
+    private checkForNewMessages;
+    getQueuedMessages(): Promise<MessagePayload[]>;
+    clearMessageQueue(): Promise<void>;
+    getQueueCount(): number;
     isReady(): boolean;
     private handleConnection;
     getPublicKey(): string;
@@ -24,5 +36,7 @@ export declare class ClawNode {
     private loadFriends;
     private saveFriends;
     destroy(): Promise<void>;
+    private loadMessageIndex;
+    private saveMessageIndex;
 }
 //# sourceMappingURL=node.d.ts.map

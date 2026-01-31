@@ -19,6 +19,11 @@ class ClawNode {
         this.swarm = null;
         this.friends = new Map();
         this.ready = false;
+        this.listening = false;
+        this.messageQueue = [];
+        this.lastReadIndex = 0;
+        this.watchInterval = null;
+        this.pendingInvites = new Map();
         this.storagePath = config?.storagePath || path_1.default.join(process.env.HOME || '.', '.claw-connect');
         this.config = {
             storagePath: this.storagePath,
@@ -60,11 +65,72 @@ class ClawNode {
         }
         // Load friends
         await this.loadFriends();
+        // Load last read index for message queue
+        await this.loadMessageIndex();
         // Initialize Hyperswarm
         this.swarm = (0, hyperswarm_1.default)({});
         this.swarm.on('connection', (socket) => this.handleConnection(socket));
         this.swarm.join(this.feed.discoveryKey);
         this.ready = true;
+    }
+    async startListening() {
+        if (!this.feed || this.listening)
+            return;
+        this.listening = true;
+        console.log('[ClawNode] Started listening for messages and connections');
+        // Set up polling for new messages (more reliable than Hypercore's native watch)
+        this.watchInterval = setInterval(async () => {
+            await this.checkForNewMessages();
+        }, 2000); // Check every 2 seconds
+        // Initial check
+        await this.checkForNewMessages();
+    }
+    stopListening() {
+        if (this.watchInterval) {
+            clearInterval(this.watchInterval);
+            this.watchInterval = null;
+        }
+        this.listening = false;
+        console.log('[ClawNode] Stopped listening');
+    }
+    isListening() {
+        return this.listening;
+    }
+    async checkForNewMessages() {
+        if (!this.feed)
+            return;
+        try {
+            const length = this.feed.length;
+            if (length > this.lastReadIndex) {
+                // Fetch new messages
+                for (let i = this.lastReadIndex; i < length; i++) {
+                    try {
+                        const data = await this.feed.get(i);
+                        const message = JSON.parse(data.toString());
+                        this.messageQueue.push(message);
+                        console.log(`[ClawNode] New message from ${message.from.slice(0, 8)}...`);
+                    }
+                    catch (err) {
+                        // Skip missing entries
+                    }
+                }
+                this.lastReadIndex = length;
+                await this.saveMessageIndex();
+            }
+        }
+        catch (err) {
+            // Ignore errors during polling
+        }
+    }
+    async getQueuedMessages() {
+        await this.checkForNewMessages();
+        return this.messageQueue;
+    }
+    async clearMessageQueue() {
+        this.messageQueue = [];
+    }
+    getQueueCount() {
+        return this.messageQueue.length;
     }
     isReady() {
         return this.ready;
@@ -179,7 +245,10 @@ class ClawNode {
     async getFriends() {
         return Array.from(this.friends.values());
     }
-    async addFriend(key, alias) {
+    async addFriend(key, _alias) {
+        // Generate unique alias from public key (first 8 chars)
+        const shortKey = key.slice(0, 8);
+        const alias = `Friend_${shortKey}`;
         const friend = {
             alias,
             publicKey: key,
@@ -188,6 +257,7 @@ class ClawNode {
         };
         this.friends.set(alias, friend);
         await this.saveFriends();
+        console.log(`[ClawNode] Added friend: ${alias}`);
     }
     async loadFriends() {
         try {
@@ -204,11 +274,25 @@ class ClawNode {
         await promises_1.default.writeFile(path_1.default.join(this.storagePath, 'friends.json'), JSON.stringify(list, null, 2));
     }
     async destroy() {
+        this.stopListening();
         if (this.swarm) {
             this.swarm.destroy();
             this.swarm = null;
         }
         this.ready = false;
+    }
+    async loadMessageIndex() {
+        try {
+            const data = await promises_1.default.readFile(path_1.default.join(this.storagePath, 'message-index.json'), 'utf-8');
+            const parsed = JSON.parse(data);
+            this.lastReadIndex = parsed.index || 0;
+        }
+        catch {
+            this.lastReadIndex = 0;
+        }
+    }
+    async saveMessageIndex() {
+        await promises_1.default.writeFile(path_1.default.join(this.storagePath, 'message-index.json'), JSON.stringify({ index: this.lastReadIndex }, null, 2));
     }
 }
 exports.ClawNode = ClawNode;

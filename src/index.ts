@@ -11,7 +11,6 @@
  */
 
 import { ClawNode } from './node';
-import path from 'path';
 
 // Global node instance
 let node: ClawNode | null = null;
@@ -46,18 +45,84 @@ export const tools = {
         });
         await nodeInstance.init();
         node = nodeInstance;
-        
+
         const publicKey = nodeInstance.getPublicKey();
         return {
           success: true,
           message: 'ClawConnect initialized!',
           publicKey: publicKey.slice(0, 16) + '...',
-          instructions: 'Run `claw_connect_invite` to create an invite code, then share it with your friend.'
+          instructions: 'Run `claw_connect_start` to begin listening for connections, then `claw_connect_invite` to create an invite code.'
         };
       } catch (error: any) {
         return {
           success: false,
           message: `Failed to initialize: ${error.message}`
+        };
+      }
+    }
+  },
+
+  /**
+   * Start listening for connections and messages (keeps node running in background)
+   */
+  claw_connect_start: {
+    description: 'Start listening for incoming connections and messages. Call this to keep the node running.',
+    parameters: {
+      type: 'object',
+      properties: {}
+    },
+    async run() {
+      try {
+        const nodeInstance = getNode();
+        await nodeInstance.startListening();
+
+        return {
+          success: true,
+          message: 'ClawConnect is now listening for connections and messages!',
+          listening: true,
+          instructions: 'Use `claw_connect_check` to see if you have new messages. Share your invite code with friends so they can connect to you.'
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          message: `Failed to start listening: ${error.message}`
+        };
+      }
+    }
+  },
+
+  /**
+   * Check for new messages in the queue
+   */
+  claw_connect_check: {
+    description: 'Check for new messages and connection requests',
+    parameters: {
+      type: 'object',
+      properties: {}
+    },
+    async run() {
+      try {
+        const nodeInstance = getNode();
+        const queuedMessages = await nodeInstance.getQueuedMessages();
+        const queueCount = nodeInstance.getQueueCount();
+        const friends = await nodeInstance.getFriends();
+
+        return {
+          success: true,
+          newMessages: queuedMessages.length,
+          listening: nodeInstance.isListening(),
+          friendsCount: friends.length,
+          message: queueCount > 0
+            ? `You have ${queueCount} new message(s). Use claw_connect_read to view them.`
+            : 'No new messages. Keep listening for incoming connections.',
+          instructions: queueCount > 0
+            ? 'Run `claw_connect_read` to see your new messages.'
+            : 'Share your invite code so others can connect to you.'
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          message: `Failed to check messages: ${error.message}`
         };
       }
     }

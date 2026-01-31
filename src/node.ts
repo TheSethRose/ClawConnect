@@ -17,6 +17,11 @@ export class ClawNode {
   private storagePath: string;
   private config: ClawConfig;
   private ready: boolean = false;
+  private listening: boolean = false;
+  private messageQueue: MessagePayload[] = [];
+  private lastReadIndex: number = 0;
+  private watchInterval: any = null;
+  private pendingInvites: Map<string, { role: 'inviter' | 'invitee'; resolve: Function; reject: Function; timeout: any }> = new Map();
 
   constructor(config?: Partial<ClawConfig>) {
     this.storagePath = config?.storagePath || path.join(process.env.HOME || '.', '.claw-connect');
@@ -35,7 +40,7 @@ export class ClawNode {
     // Initialize Hypercore feed
     // @ts-ignore - hypercore doesn't have type definitions
     this.feed = new Hypercore({ storage: path.join(this.storagePath, 'feed') });
-    
+
     // Workaround for Hypercore native module issue on Apple Silicon
     // The ready() callback can hang due to Rust native extension blocking
     if (isAppleSilicon) {
@@ -44,7 +49,7 @@ export class ClawNode {
           console.log('[ClawNode] Timeout reached, proceeding anyway');
           resolve();
         }, 5000);
-        
+
         try {
           this.feed!.ready(() => {
             clearTimeout(timeout);
@@ -64,12 +69,81 @@ export class ClawNode {
     // Load friends
     await this.loadFriends();
 
+    // Load last read index for message queue
+    await this.loadMessageIndex();
+
     // Initialize Hyperswarm
     this.swarm = Hyperswarm({});
     this.swarm.on('connection', (socket: any) => this.handleConnection(socket));
     this.swarm.join(this.feed!.discoveryKey);
 
     this.ready = true;
+  }
+
+  async startListening(): Promise<void> {
+    if (!this.feed || this.listening) return;
+
+    this.listening = true;
+    console.log('[ClawNode] Started listening for messages and connections');
+
+    // Set up polling for new messages (more reliable than Hypercore's native watch)
+    this.watchInterval = setInterval(async () => {
+      await this.checkForNewMessages();
+    }, 2000); // Check every 2 seconds
+
+    // Initial check
+    await this.checkForNewMessages();
+  }
+
+  stopListening(): void {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+      this.watchInterval = null;
+    }
+    this.listening = false;
+    console.log('[ClawNode] Stopped listening');
+  }
+
+  isListening(): boolean {
+    return this.listening;
+  }
+
+  private async checkForNewMessages(): Promise<void> {
+    if (!this.feed) return;
+
+    try {
+      const length = this.feed.length;
+      if (length > this.lastReadIndex) {
+        // Fetch new messages
+        for (let i = this.lastReadIndex; i < length; i++) {
+          try {
+            const data = await this.feed.get(i);
+            const message = JSON.parse(data.toString());
+            this.messageQueue.push(message);
+            console.log(`[ClawNode] New message from ${message.from.slice(0, 8)}...`);
+          } catch (err) {
+            // Skip missing entries
+          }
+        }
+        this.lastReadIndex = length;
+        await this.saveMessageIndex();
+      }
+    } catch (err) {
+      // Ignore errors during polling
+    }
+  }
+
+  async getQueuedMessages(): Promise<MessagePayload[]> {
+    await this.checkForNewMessages();
+    return this.messageQueue;
+  }
+
+  async clearMessageQueue(): Promise<void> {
+    this.messageQueue = [];
+  }
+
+  getQueueCount(): number {
+    return this.messageQueue.length;
   }
 
   isReady(): boolean {
@@ -204,7 +278,11 @@ export class ClawNode {
     return Array.from(this.friends.values());
   }
 
-  private async addFriend(key: string, alias: string): Promise<void> {
+  private async addFriend(key: string, _alias: string): Promise<void> {
+    // Generate unique alias from public key (first 8 chars)
+    const shortKey = key.slice(0, 8);
+    const alias = `Friend_${shortKey}`;
+
     const friend: Friend = {
       alias,
       publicKey: key,
@@ -213,6 +291,7 @@ export class ClawNode {
     };
     this.friends.set(alias, friend);
     await this.saveFriends();
+    console.log(`[ClawNode] Added friend: ${alias}`);
   }
 
   private async loadFriends(): Promise<void> {
@@ -231,10 +310,28 @@ export class ClawNode {
   }
 
   async destroy(): Promise<void> {
+    this.stopListening();
     if (this.swarm) {
       this.swarm.destroy();
       this.swarm = null;
     }
     this.ready = false;
+  }
+
+  private async loadMessageIndex(): Promise<void> {
+    try {
+      const data = await fs.readFile(path.join(this.storagePath, 'message-index.json'), 'utf-8');
+      const parsed = JSON.parse(data);
+      this.lastReadIndex = parsed.index || 0;
+    } catch {
+      this.lastReadIndex = 0;
+    }
+  }
+
+  private async saveMessageIndex(): Promise<void> {
+    await fs.writeFile(
+      path.join(this.storagePath, 'message-index.json'),
+      JSON.stringify({ index: this.lastReadIndex }, null, 2)
+    );
   }
 }

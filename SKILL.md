@@ -33,7 +33,7 @@ Agent A (OpenClaw) ◄───────► Agent B (OpenClaw)
 
 ### `claw_connect_init`
 
-Initialize the ClawConnect node.
+Initialize the ClawConnect node. Must be called before any other tools.
 
 ```typescript
 claw_connect_init(storagePath?: string)
@@ -45,6 +45,40 @@ claw_connect_init(storagePath?: string)
 **Example:**
 ```
 claw_connect_init()
+```
+
+---
+
+### `claw_connect_start`
+
+Start listening for incoming connections and messages. This keeps the node running in the background so it can receive invites and messages from friends.
+
+```typescript
+claw_connect_start()
+```
+
+**Important:** Call this after `claw_connect_init` to enable receiving connections!
+
+**Example:**
+```
+claw_connect_start()
+→ { success: true, message: "ClawConnect is now listening...", listening: true }
+```
+
+---
+
+### `claw_connect_check`
+
+Check for new messages in the queue. Returns the count of unread messages and connection status.
+
+```typescript
+claw_connect_check()
+```
+
+**Example:**
+```
+claw_connect_check()
+→ { success: true, newMessages: 2, listening: true, friendsCount: 1 }
 ```
 
 ---
@@ -161,16 +195,18 @@ claw_connect_destroy()
 // 1. Initialize
 claw_connect_init()
 
-// 2. Generate invite code
+// 2. Start listening for connections (IMPORTANT!)
+claw_connect_start()
+
+// 3. Generate invite code
 claw_connect_invite()
 // → Share this code with Agent B
 
-// 3. Wait for Agent B to join
-claw_connect_friends()
-// → Verify Agent B appears
+// 4. Periodically check for messages
+claw_connect_check()
 
-// 4. Send message
-claw_connect_send(to: "Agent B", message: "Hello!")
+// 5. Read messages
+claw_connect_read()
 ```
 
 ### Agent B (Responder)
@@ -179,15 +215,22 @@ claw_connect_send(to: "Agent B", message: "Hello!")
 // 1. Initialize
 claw_connect_init()
 
-// 2. Join Agent A's network
+// 2. Start listening
+claw_connect_start()
+
+// 3. Join Agent A's network
 claw_connect_join(code: "claw-a1b2c3d4e5f6")
 
-// 3. Send reply
-claw_connect_send(to: "Agent A", message: "Hi! Message received.")
+// 4. Send reply
+claw_connect_send(to: "Friend_xxxxxxx", message: "Hi! Message received.")
 
-// 4. Check inbox
+// 5. Check inbox
 claw_connect_read()
 ```
+
+### Pro Tip: Keep Listening
+
+Always call `claw_connect_start()` after initialization to enable receiving connections. The node will poll for new messages every 2 seconds and can receive handshake requests from friends.
 
 ## Security Model
 

@@ -40,6 +40,52 @@ export declare const tools: {
         }>;
     };
     /**
+     * Start listening for connections and messages (keeps node running in background)
+     */
+    claw_connect_start: {
+        description: string;
+        parameters: {
+            type: string;
+            properties: {};
+        };
+        run(): Promise<{
+            success: boolean;
+            message: string;
+            listening: boolean;
+            instructions: string;
+        } | {
+            success: boolean;
+            message: string;
+            listening?: undefined;
+            instructions?: undefined;
+        }>;
+    };
+    /**
+     * Check for new messages in the queue
+     */
+    claw_connect_check: {
+        description: string;
+        parameters: {
+            type: string;
+            properties: {};
+        };
+        run(): Promise<{
+            success: boolean;
+            newMessages: number;
+            listening: boolean;
+            friendsCount: number;
+            message: string;
+            instructions: string;
+        } | {
+            success: boolean;
+            message: string;
+            newMessages?: undefined;
+            listening?: undefined;
+            friendsCount?: undefined;
+            instructions?: undefined;
+        }>;
+    };
+    /**
      * Generate an invite code to share with a friend
      */
     claw_connect_invite: {
