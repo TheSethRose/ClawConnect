@@ -1,0 +1,30 @@
+{
+  "name": "claw-connect",
+  "version": "0.1.0",
+  "description": "Decentralized agent-to-agent messaging via P2P Hypercore",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": [
+    "p2p",
+    "messaging",
+    "hypercore",
+    "agents"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "hypercore": "^10.0.0",
+    "hyperswarm": "^2.5.0",
+    "b4a": "^1.6.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
