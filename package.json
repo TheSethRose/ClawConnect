@@ -17,14 +17,16 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "hypercore": "^10.0.0",
-    "hyperswarm": "^2.5.0",
     "b4a": "^1.6.0",
+    "dht-rpc": "^4.0.1",
+    "discovery-channel": "^5.0.1",
+    "hypercore": "^10.0.0",
+    "hyperswarm": "^2.4.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   }
 }

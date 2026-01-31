@@ -43,9 +43,9 @@ class ClawNode {
         if (isAppleSilicon) {
             await new Promise((resolve) => {
                 const timeout = setTimeout(() => {
-                    console.log('[ClawNode] Timeout reached, proceeding anyway');
+                    console.log('[ClawNode] Apple Silicon timeout reached, proceeding anyway');
                     resolve();
-                }, 5000);
+                }, 30000); // 30 seconds - give native modules more time to initialize
                 try {
                     this.feed.ready(() => {
                         clearTimeout(timeout);
@@ -165,7 +165,8 @@ class ClawNode {
                 resolve({ success: false, error: 'Handshake timeout - peer not online' });
             }, this.config.handshakeTimeout);
             this.swarm.join(topic, { client: true, server: true });
-            this.swarm.on('connection', async (socket) => {
+            // Use once() instead of on() - handler removes itself after first connection
+            this.swarm.once('connection', async (socket) => {
                 try {
                     const iv = crypto_1.default.randomBytes(12);
                     const cipher = crypto_1.default.createCipheriv('aes-256-gcm', sharedSecret, iv);
@@ -189,15 +190,20 @@ class ClawNode {
                             resolve({ success: true, code, peerKey: peerData.pubKey });
                         }
                         catch (err) {
+                            clearTimeout(timeout);
                             socket.destroy();
+                            this.swarm?.destroy();
+                            resolve({ success: false, error: 'Handshake failed' });
                         }
                     });
                 }
                 catch (err) {
+                    clearTimeout(timeout);
                     socket.destroy();
+                    this.swarm?.destroy();
+                    resolve({ success: false, error: 'Connection error' });
                 }
             });
-            this.swarm.flush();
         });
     }
     deriveSession(inviteCode) {

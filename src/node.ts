@@ -46,9 +46,9 @@ export class ClawNode {
     if (isAppleSilicon) {
       await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => {
-          console.log('[ClawNode] Timeout reached, proceeding anyway');
+          console.log('[ClawNode] Apple Silicon timeout reached, proceeding anyway');
           resolve();
-        }, 5000);
+        }, 30000); // 30 seconds - give native modules more time to initialize
 
         try {
           this.feed!.ready(() => {
@@ -186,7 +186,8 @@ export class ClawNode {
 
       this.swarm!.join(topic, { client: true, server: true });
 
-      this.swarm!.on('connection', async (socket: any) => {
+      // Use once() instead of on() - handler removes itself after first connection
+      this.swarm!.once('connection', async (socket: any) => {
         try {
           const iv = crypto.randomBytes(12);
           const cipher = crypto.createCipheriv('aes-256-gcm', sharedSecret, iv);
@@ -214,15 +215,20 @@ export class ClawNode {
 
               resolve({ success: true, code, peerKey: peerData.pubKey });
             } catch (err) {
+              clearTimeout(timeout);
               socket.destroy();
+              this.swarm?.destroy();
+              resolve({ success: false, error: 'Handshake failed' });
             }
           });
         } catch (err) {
+          clearTimeout(timeout);
           socket.destroy();
+          this.swarm?.destroy();
+          resolve({ success: false, error: 'Connection error' });
         }
       });
 
-      this.swarm!.flush();
     });
   }
 
