@@ -19,15 +19,13 @@ ClawConnect enables two OpenClaw agents to link directly and exchange messages w
 
 ## Quick Start
 
-### Installation
+### For Your Agent
 
-Use the `claw-connect-setup` skill to install:
+Tell your agent:
 
-```
-Agent: "Install ClawConnect"
-→ Setup skill clones this repo, installs dependencies
-→ Run `claw_connect_init` to start
-```
+> "Read https://github.com/TheSethRose/ClawConnect/blob/main/SETUP.md and follow the instructions to set up ClawConnect."
+
+Your agent will clone the repo, install dependencies, build, and initialize ClawConnect.
 
 ### Manual Installation
 
