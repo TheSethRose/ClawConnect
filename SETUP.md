@@ -4,34 +4,48 @@ P2P agent-to-agent messaging via Hypercore + Hyperswarm.
 
 ## Quick Install
 
-### Option 1: Clone & Build
+Cloning is required because ClawConnect must be compiled on the target machine:
 
 ```bash
-# Clone anywhere (agent knows where to put files)
-git clone https://github.com/TheSethRose/ClawConnect /path/your/agent/chooses/claw-connect
-cd /path/claw-connect
+# Clone the repo (needed for compilation)
+git clone https://github.com/TheSethRose/ClawConnect /your/agent/chooses/this/path
+cd /that/path
 npm install
 npm run build
 ```
 
-### Option 2: Fetch Files Individually
+## What Must Be Compiled
 
-```bash
-# Agent determines the right path, fetches from GitHub raw URLs
-curl -s https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SKILL.md > /agent/chosen/path/SKILL.md
-curl -s https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/src/index.ts > /agent/chosen/path/src/index.ts
-# ... other files
+**TypeScript → JavaScript compilation is required:**
+
+```
+src/index.ts ──► npm run build ──► dist/index.js
+src/node.ts  ──►           ──► dist/node.js
+(plus dependencies)
 ```
 
-## Key Files
+This is why we can't just fetch pre-built files — the skill needs to compile for your system.
+
+## What Can Be Fetched Separately
+
+Documentation and metadata can be fetched from URLs:
 
 | File | URL |
 |------|-----|
 | **SKILL.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SKILL.md` |
 | **README.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/README.md` |
-| **Setup notes** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SETUP.md` |
+| **SETUP.md** | `https://raw.githubusercontent.com/TheSethRose/ClawConnect/main/SETUP.md` |
 
-**Dynamic:** Fetch anytime to get latest changes!
+These don't require compilation, so you can fetch them anytime to check for updates.
+
+## Why This Distinction Matters
+
+| Type | Can URL-fetch? | Why |
+|------|----------------|-----|
+| Documentation (`.md`) | ✅ Yes | Static text, no compilation |
+| Source code (`.ts`) | ❌ No | Must compile locally |
+| Pre-built (`.js`) | ✅ Yes | Already compiled |
+| Dependencies | ❌ No | Must `npm install` for your system |
 
 ## After Install
 
@@ -47,31 +61,29 @@ node -e "require('./dist/index').tools.claw_connect_invite.run({}).then(console.
 node -e "require('./dist/index').tools.claw_connect_join.run({ code: 'claw-xxxxxx' }).then(console.log)"
 ```
 
-## Design Notes
+## Shell Execution Notes
 
-### URL-Driven Distribution
-- All files hosted on GitHub (raw URLs)
-- Agent fetches files from URLs
-- Agent determines installation path
-- Re-fetch files to check for updates
+For Node.js tools that run commands:
 
-### No Hardcoded Paths
-- Each agent has its own workspace
-- Agent knows where to put skill files
-- Flexible for different OpenClaw setups
-
-### Shell Execution
-- Use explicit `cd` commands for npm operations
-- `cwd` option unreliable on macOS:
 ```typescript
-// Working pattern
+// ✅ Working pattern (macOS compatible)
 await execAsync('cd "' + installPath + '" && npm install', { shell: '/bin/bash' });
 
-// Avoid (fails on macOS)
+// ❌ Avoid (cwd option unreliable on macOS)
 await execAsync('npm install', { cwd: installPath });
 ```
 
-### Stateless Tools
-- Each tool independently detects paths
-- No shared state between tool calls
-- Check default paths + custom paths
+## No Hardcoded Paths
+
+Each agent has its own workspace. You determine where to install ClawConnect based on your setup. The paths above are examples — use whatever makes sense for your agent.
+
+## Setup Skill Automation
+
+The `claw-connect-setup` skill automates this process:
+
+1. `claw_connect_install` — Clone, npm install
+2. `claw_connect_start` — Build, return commands
+3. `claw_connect_setup_status` — Check state
+4. `claw_connect_uninstall` — Remove everything
+
+Use these tools if your agent supports skills.
